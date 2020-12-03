@@ -16,108 +16,128 @@ import (
 
 // PubSub is our struct for the publisher-subscriber pattern
 type PubSub struct {
-	mu     sync.Mutex
 	topics map[string][]chan string
+	mu     sync.RWMutex
+}
+
+func New() *PubSub{
+	return &PubSub{make(map[string][]chan string),
+		sync.RWMutex{}}
 }
 
 var wg sync.WaitGroup
 
 // TODO: creates and returns a new channel on a given topic, updating the PubSub struct
-func (ps *PubSub) subscribe(topic string) chan string {
-	ps.mutex.Lock()
+func (ps *PubSub) subscribe(topic string) []chan string {
+	//defer wg.Done()
+	//ps.mu.Lock()
 
-	if previous, add := ps.topics[topic]; add{
-		ps.topics[topic] = append(previous, chan topic)
+	var tmp []chan string
+	if ps.topics[topic] != nil {
+		ps.topics[topic] = tmp
 	} else {
-		ps.topics[topic] = append([] chan topic)
+		ps.topics[topic] = tmp
 	}
-	return ps.topics[topic]
-	
-	ps.mutex.Unlock()
+	//ps.mu.Unlock()
+	return tmp
 }
 
 // TODO: writes the given message on all the channels associated with the given topic
 func (ps PubSub) publish(topic string, msg string) {
-	ps.mutex.Lock()
+	//defer wg.Done()
+	//ps.mu.Lock()
 
-	if channel, associated := ps.topics[topic]; associated {
-		for _, msg := range messages{
-			channel <- msg
+	for  mapped, associated := range ps.topics {
+		if mapped == topic {
+			for _, channel := range associated{
+				channel <- msg
+			}
 		}
-	}	
+	}
+	//ps.mu.Unlock()
+}
 
-	ps.mutex.Unlock()
+func (ps PubSub) _publishGo(channel []chan string, msg string){
+	for _, channel :=  range channel {
+		channel <- msg
+	}
 }
 
 // TODO: sends messages taken from a given array of message, one at a time and at random intervals, to all topic subscribers
-func publisher(ps PubSub, topic string, msgs []string) {
-	ps.mutex.Lock()
+func (ps *PubSub) publisher( topic string, msgs [5]string) {
+	//defer wg.Done()
+	//ps.mu.Lock()
 
-	for message  {
-		ps.publish(topic, msg)
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	}
-	
-	ps.mutex.Unlock()
+		for message := range msgs {
+			go ps.publish(topic, msgs[message])
+			time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+		}
+	//ps.mu.Unlock()
 }
 
 
 // TODO: reads and displays all messages received from a particular topic
-func subscriber(ps PubSub, name string, topic string) {
+func (ps *PubSub) subscriber(name string, topic string) {
+	//defer wg.Done()
+	//ps.mu.Lock()
 
-	for channel, topic := range ps.topics {
-			if channel, matches :=  ps.topics[topic]; matches {
-					printer(channel, topic)
-			}
-		}
+	for topic, slice := range ps.topics {
+		go printer(name, topic, slice)
+	}
+	//ps.mu.Unlock()
 }
 
-func printer(ch string, topic string) {
-	fmt.Printf("Channel: %s; Topic: %s\n", ch, topic)
+func printer(name string, topic string, channel []chan string,) {
+	for item := range channel {
+		var receive = <-channel[item]
+		fmt.Printf("Name: %s; Topic: %s; Message: %s\n",name, topic, receive)
+	}
 }
-
-
 
 func main() {
 
 	// TODO: create the ps struct
-	// Create and start a PubSub:
-	ps := NewPubSub()
-	
+
+	var ps PubSub
 
 	// TODO: create the arrays of messages to be sent on each topic
+	var beesArray [5]string
 
-	"bees are pollinators" "bees produce honey" 
-	"all worker bees are female" "all worker bees are female"
-	"bees have 5 eyes" "bees fly about 20mph"
+	beesArray[0] = "bees are pollinators"
+	beesArray[1] = "bees produce honey"
+	beesArray[2] = "all worker bees are female"
+	beesArray[3] = "bees have 5 eyes"
+	beesArray[4] = "bees fly about 20mph"
+
+	var philosophyArray [5]string
+
+	philosophyArray[0] = "And if you gaze for long into an abyss, the abyss gazes also into you."
+	philosophyArray[1] = "Dreams are the touchstones of our characters."
+	philosophyArray[2] = "The question is not what you look at, but what you see."
+	philosophyArray[3] = "Go confidently in the direction of your dreams! Live the life you’ve imagined."
+	philosophyArray[4] = "Rather than love, than money, than fame, give me truth."
 
 	// TODO: set wait group to 2 (# of publishers)
+	wg.Add(2)
 
-	go publish("topic1", "Hi topic 1")
-	go publish("topic2", "Welcome to topic 2")
+
 
 	// TODO: create the publisher goroutines
 
+	go ps.publisher("bees", beesArray)
+	go ps.publisher("philosophy", philosophyArray)
+
+
 	// TODO: create the subscriber goroutines
+	go ps.subscriber("nature","bees")
+	go ps.subscriber("humanities", "philosophy")
+
+
 
 	// TODO: wait for all publishers to be done
-	ch1 := make(chan Data)
-	ch2 := make(chan Data)
-	ch3 := make(chan Data)
 
-	ps.subscribe("topic1", ch1)
-	ps.subscribe("topic2", ch2)
-	ps.subscribe("topic2", ch3)
+	//wg.Wait()
 
 
-	for {
-		select {
-		case d := <-ch1:
-			go printer("ch1", d)
-		case d := <-ch2:
-			go printer("ch2", d)
-		case d := <-ch3:
-			go printer("ch3", d)
-		}
-	}
+
 }
