@@ -6,11 +6,13 @@
  */
 
 package main
+
 import (
+	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 )
-
-
 
 // PubSub is our struct for the publisher-subscriber pattern
 type PubSub struct {
@@ -38,7 +40,7 @@ func (ps *PubSub) subscribe(topic string) chan string {
 func (ps PubSub) publish(topic string, msg string) {
 	ps.mutex.Lock()
 
-	if channel, matches := ps.topics[topic]; matches {
+	if channel, associated := ps.topics[topic]; associated {
 		for _, msg := range messages{
 			channel <- msg
 		}
@@ -51,157 +53,71 @@ func (ps PubSub) publish(topic string, msg string) {
 func publisher(ps PubSub, topic string, msgs []string) {
 	ps.mutex.Lock()
 
-	for message := range msgs {
+	for message  {
+		ps.publish(topic, msg)
 		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-		if channel, matches := ps.topics[topic]; matches {
-			ps.topics
-			
-
-				}
-		}
-
-
-
+	}
+	
 	ps.mutex.Unlock()
 }
 
-// 	// func (ps *PubSub) StreetSubscribe() chan interface{} {
-	// 	msgCh := make(chan interface{}, 5) // Create slice
-	// 	ps.subCh <- msgCh
-	// 	return msgCh
-	// }
 
-	// func NewPubSub() *PubSub {
-	// 	return &PubSub{
-	// 		stopCh:    make(chan struct{}),
-	// 		publishCh: make(chan interface{}, 1),
-	// 		subCh:     make(chan chan interface{}, 1),
-	// 		unsubCh:   make(chan chan interface{}, 1),
-	// 		topics:    make(map[string][]chan string),
-	// 	}
-	// }
+// TODO: reads and displays all messages received from a particular topic
+func subscriber(ps PubSub, name string, topic string) {
 
-	// // TODO: writes the given message on all the channels associated with the given topic.
-	// func (ps *PubSub) Start() {
-	// 	defer wg.Done()
-	// 	subs := map[chan interface{}]struct{}{}
-	// 	for {
-	// 		select {
-	// 		case <-ps.stopCh:
-	// 			return
-	// 		case msgCh := <-ps.subCh:
-	// 			subs[msgCh] = struct{}{}
-	// 		case msgCh := <-ps.unsubCh:
-	// 			delete(subs, msgCh)
-	// 		case msg := <-ps.publishCh:
-	// 			for msgCh := range subs {
-	// 				// msgCh is buffered, use non-blocking send to protect the PubSub:
-	// 				select {
-	// 				case msgCh <- msg:
-	// 				default:
-	// 				}
-	// 			} // end case
-	// 		} // end select
-	// 	} // end for
-	// } // end Start
+	for channel, topic := range ps.topics {
+			if channel, matches :=  ps.topics[topic]; matches {
+					printer(channel, topic)
+			}
+		}
+}
 
-	// // TODO: creates and returns a new channel on a given topic, updating the PubSub struct
-	// func (ps *PubSub) StreetSubscribe() chan interface{} {
-	// 	msgCh := make(chan interface{}, 5) // Create slice
-	// 	ps.subCh <- msgCh
-	// 	return msgCh
-	// }
+func printer(ch string, topic string) {
+	fmt.Printf("Channel: %s; Topic: %s\n", ch, topic)
+}
 
-	// func (ps *PubSub) BeeSubscribe() chan interface{} {
-	// 	msgCh := make(chan interface{}, 5) // Create slice
-	// 	ps.subCh <- msgCh
-	// 	return msgCh
-	// }
 
-	// func (ps *PubSub) Unsubscribe(msgCh chan interface{}) {
-	// 	ps.unsubCh <- msgCh
-	// }
 
-	// func (ps *PubSub) StreetPublish(msg interface{}) {
-	// 	ps.publishCh <- msg
-	// }
+func main() {
 
-	// func (ps *PubSub) BeePublish(msg interface{}) {
-	// 	ps.publishCh <- msg
-	// }
+	// TODO: create the ps struct
+	// Create and start a PubSub:
+	ps := NewPubSub()
+	
 
-	// func main() {
-	// 	// TODO: create the ps struct
-	// 	// Create and start a PubSub:
-	// 	ps := NewPubSub()
-	// 	//pub1 := make(chan string)
-	// 	//pub2 := make(chan string)
-	// 	//
-	// 	//sub1 := make(chan string)
-	// 	//sub2 := make(chan string)
-	// 	//sub3 := make(chan string)
+	// TODO: create the arrays of messages to be sent on each topic
 
-	// 	// TODO: create the subscriber goroutines
-	// 	go ps.Start()
+	"bees are pollinators" "bees produce honey" 
+	"all worker bees are female" "all worker bees are female"
+	"bees have 5 eyes" "bees fly about 20mph"
 
-	// 	// TODO: create the arrays of messages to be sent on each topic
-	// 	// Create and subscribe 3 clients:
+	// TODO: set wait group to 2 (# of publishers)
 
-	// 	subscriber := func(name string, topic string) {
-	// 		msgCh := ps.BeeSubscribe()
+	go publish("topic1", "Hi topic 1")
+	go publish("topic2", "Welcome to topic 2")
 
-	// 		if topic == "streets" {
-	// 			for {
-	// 				fmt.Printf("* %s got message: %v\n", name, <-msgCh)
-	// 				//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+	// TODO: create the publisher goroutines
 
-	// 			}
-	// 		} else if topic == "bees" {
-	// 			for {
-	// 				fmt.Printf("* %s got message: %v\n", name, <-msgCh)
-	// 				//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+	// TODO: create the subscriber goroutines
 
-	// 			}
-	// 		}
+	// TODO: wait for all publishers to be done
+	ch1 := make(chan Data)
+	ch2 := make(chan Data)
+	ch3 := make(chan Data)
 
-	// 	}
+	ps.subscribe("topic1", ch1)
+	ps.subscribe("topic2", ch2)
+	ps.subscribe("topic2", ch3)
 
-	// 	go subscriber("Marry", "bees")
-	// 	go subscriber("Tom", "streets")
 
-	// 	//go publish(beefacts)
-
-	// 	// TODO: set wait group to 2 (# of publishers)
-	// 	// TODO: create the publisher goroutines
-	// 	// Start publishing messages:
-	// 	go func() {
-	// 		for publisher := 0; ; publisher++ {
-	// 			//time.Sleep(200 * time.Millisecond)
-	// 			ps.mutex.Lock()
-
-	// 			ps.BeePublish(fmt.Sprintf("msg#%d", publisher))
-	// 			//time.Sleep(200 * time.Millisecond)
-	// 			ps.BeePublish("bees are pollinators.")
-	// 			//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	// 			//time.Sleep(200 * time.Millisecond)
-	// 			ps.BeePublish("bees produce honey")
-	// 			//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	// 			time.Sleep(200 * time.Millisecond)
-	// 			ps.BeePublish("all worker bees are female")
-	// 			//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	// 			time.Sleep(200 * time.Millisecond)
-	// 			ps.BeePublish("bees have 5 eyes,")
-	// 			//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	// 			time.Sleep(200 * time.Millisecond)
-	// 			ps.BeePublish("bees fly about 20mph")
-	// 			//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	// 			time.Sleep(200 * time.Millisecond)
-	// 			ps.StreetPublish("Streets are cool")
-	// 			//time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-	// 			time.Sleep(200 * time.Millisecond)
-	// 			ps.mutex.Unlock()
-	// 		}
-	// 	}()
-	// 	// TODO: wait for all publishers to be done
-	// 	time.Sleep(time.Second)
+	for {
+		select {
+		case d := <-ch1:
+			go printer("ch1", d)
+		case d := <-ch2:
+			go printer("ch2", d)
+		case d := <-ch3:
+			go printer("ch3", d)
+		}
+	}
 }
