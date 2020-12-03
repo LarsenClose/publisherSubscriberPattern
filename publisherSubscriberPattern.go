@@ -20,10 +20,9 @@ type PubSub struct {
 	mu     sync.RWMutex
 }
 
-func New() *PubSub{
-	return &PubSub{make(map[string][]chan string),
+ var ps = &PubSub{make(map[string][]chan string),
 		sync.RWMutex{}}
-}
+
 
 var wg sync.WaitGroup
 
@@ -38,6 +37,7 @@ func (ps *PubSub) subscribe(topic string) []chan string {
 	} else {
 		ps.topics[topic] = tmp
 	}
+	go printer(topic, tmp)											// added print
 	//ps.mu.Unlock()
 	return tmp
 }
@@ -45,16 +45,19 @@ func (ps *PubSub) subscribe(topic string) []chan string {
 // TODO: writes the given message on all the channels associated with the given topic
 func (ps PubSub) publish(topic string, msg string) {
 	//defer wg.Done()
-	//ps.mu.Lock()
+	ps.mu.RLock()
 
 	for  mapped, associated := range ps.topics {
 		if mapped == topic {
 			for _, channel := range associated{
+				go printer(topic, associated)                         // extra print
 				channel <- msg
 			}
 		}
+		}
 	}
-	//ps.mu.Unlock()
+
+	ps.mu.Unlock()
 }
 
 func (ps PubSub) _publishGo(channel []chan string, msg string){
@@ -66,39 +69,47 @@ func (ps PubSub) _publishGo(channel []chan string, msg string){
 // TODO: sends messages taken from a given array of message, one at a time and at random intervals, to all topic subscribers
 func (ps *PubSub) publisher( topic string, msgs [5]string) {
 	//defer wg.Done()
-	//ps.mu.Lock()
+	ps.mu.RLock()
 
 		for message := range msgs {
 			go ps.publish(topic, msgs[message])
 			time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
 		}
-	//ps.mu.Unlock()
+	ps.mu.Unlock()
 }
 
 
 // TODO: reads and displays all messages received from a particular topic
 func (ps *PubSub) subscriber(name string, topic string) {
 	//defer wg.Done()
-	//ps.mu.Lock()
+	ps.mu.Lock()
 
 	for topic, slice := range ps.topics {
-		go printer(name, topic, slice)
+		go printer(topic, slice)
 	}
-	//ps.mu.Unlock()
+	ps.mu.Unlock()
 }
 
-func printer(name string, topic string, channel []chan string,) {
+func printer(topic string, channel []chan string,) {
 	for item := range channel {
 		var receive = <-channel[item]
-		fmt.Printf("Name: %s; Topic: %s; Message: %s\n",name, topic, receive)
+		fmt.Printf("Topic: %s; Message: %s\n", topic, receive)
 	}
 }
+
+//func printer(name string, topic string, channel []chan string,) {
+//	for item := range channel {
+//		var receive = <-channel[item]
+//		fmt.Printf("Name: %s; Topic: %s; Message: %s\n",name, topic, receive)
+//	}
+//}
+
 
 func main() {
 
 	// TODO: create the ps struct
 
-	var ps PubSub
+
 
 	// TODO: create the arrays of messages to be sent on each topic
 	var beesArray [5]string
@@ -118,7 +129,8 @@ func main() {
 	philosophyArray[4] = "Rather than love, than money, than fame, give me truth."
 
 	// TODO: set wait group to 2 (# of publishers)
-	wg.Add(2)
+	//wg.Add(2)
+
 
 
 
